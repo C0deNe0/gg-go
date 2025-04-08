@@ -10,9 +10,9 @@ import (
 )
 
 // this will help us through out to write the json for the ERRORS or SUCCESS or to send any type of Response
-func WriteJSON(w http.ResponseWriter, status int, v any) error {
+func WriteJSON(w http.ResponseWriter, status int, v interface{}) error {
+	w.Header().Add("Content-Type", "application-json")
 	w.WriteHeader(status)
-	w.Header().Set("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(v)
 }
 
@@ -48,12 +48,14 @@ func MakeHTTPHandlerFunc(f apiFunc) http.HandlerFunc {
 // this is the structure of the server we are creating
 type APIServer struct {
 	ListenAddr string
+	store      Storage
 }
 
 // this is like a constructor to the struct we cerated above  which is returning the new server it will create and also the listen address with it.
-func NewAPIServer(ListenAddr string) *APIServer {
+func NewAPIServer(ListenAddr string, store Storage) *APIServer {
 	return &APIServer{
 		ListenAddr: ListenAddr,
+		store:      store,
 	}
 }
 
@@ -92,8 +94,22 @@ func (s *APIServer) HandleAccount(w http.ResponseWriter, r *http.Request) error 
 
 /// VARIOUS HANDLERS WHICH WILL BE CONTAINING THE LOGIC OF THE PROJECT
 
+
+//we are making a create account request which will take the two parameteres of firstname and the lastname and we will Decode that from the r.Body
+//how the decoder works is on main.go
 func (s *APIServer) HandleCreateAccount(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	CreateAccountReq := new(CreateAccountRequest)
+	if err := json.NewDecoder(r.Body).Decode(CreateAccountReq); err != nil {
+		return err
+	}
+	//now creating a new account by passing the necessary data all other are assigned to zero or respective values
+	account := NewAccount(CreateAccountReq.FirstName, CreateAccountReq.LastName)
+	if err := s.store.CreateAccount(account); err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, account)
+
 }
 
 func (s *APIServer) HandleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
@@ -101,8 +117,8 @@ func (s *APIServer) HandleDeleteAccount(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *APIServer) HandleGetAccount(w http.ResponseWriter, r *http.Request) error {
-	id :=mux.Vars(r)["id"]
-	
+	id := mux.Vars(r)["id"]
+
 	fmt.Println(id)
 	return WriteJSON(w, http.StatusOK, &Account{})
 }

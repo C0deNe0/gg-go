@@ -12,7 +12,7 @@ type CreateAccountRequest struct {
 
 type Account struct {
 	ID        int       `json:"id"`
-	Firstname string    `json:"firstname"`
+	FirstName string    `json:"firstname"`
 	LastName  string    `json:"lastname"`
 	Number    int64     `json:"number"`
 	Balance   int64     `json:"balance"`
@@ -22,7 +22,7 @@ type Account struct {
 func NewAccount(firstName, lastName string) *Account {
 	return &Account{
 		ID:        rand.Intn(10000),
-		Firstname: firstName,
+		FirstName: firstName,
 		LastName:  lastName,
 		Number:    int64(rand.Intn(100000)),
 		CreatedAt: time.Now().UTC(),

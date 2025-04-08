@@ -68,7 +68,7 @@ func (s *APIServer) Run() {
 
 	//and we wrapped th s.HandleAccount up because it is returning error and we want to return http.HandleFunc()
 	router.HandleFunc("/account", MakeHTTPHandlerFunc(s.HandleAccount))
-	router.HandleFunc("/account/{id}", MakeHTTPHandlerFunc(s.HandleGetAccount))
+	router.HandleFunc("/account/{id}", MakeHTTPHandlerFunc(s.HandleGetAccountByID))
 
 	log.Println("JSON Api running on port: ", s.ListenAddr)
 
@@ -79,7 +79,7 @@ func (s *APIServer) Run() {
 // Account route which will handle the account section when hit with the above Endpoint
 func (s *APIServer) HandleAccount(w http.ResponseWriter, r *http.Request) error {
 	if r.Method == "GET" {
-		return s.HandleGetAccount(w, r)
+		return s.HandleGetAccountByID(w, r)
 	}
 
 	if r.Method == "DELETE" {
@@ -94,9 +94,8 @@ func (s *APIServer) HandleAccount(w http.ResponseWriter, r *http.Request) error 
 
 /// VARIOUS HANDLERS WHICH WILL BE CONTAINING THE LOGIC OF THE PROJECT
 
-
-//we are making a create account request which will take the two parameteres of firstname and the lastname and we will Decode that from the r.Body
-//how the decoder works is on main.go
+// we are making a create account request which will take the two parameteres of firstname and the lastname and we will Decode that from the r.Body
+// how the decoder works is on main.go
 func (s *APIServer) HandleCreateAccount(w http.ResponseWriter, r *http.Request) error {
 	CreateAccountReq := new(CreateAccountRequest)
 	if err := json.NewDecoder(r.Body).Decode(CreateAccountReq); err != nil {
@@ -116,9 +115,17 @@ func (s *APIServer) HandleDeleteAccount(w http.ResponseWriter, r *http.Request) 
 	return nil
 }
 
-func (s *APIServer) HandleGetAccount(w http.ResponseWriter, r *http.Request) error {
+func (s *APIServer) HandleGetAccountByID(w http.ResponseWriter, r *http.Request) error {
 	id := mux.Vars(r)["id"]
 
 	fmt.Println(id)
 	return WriteJSON(w, http.StatusOK, &Account{})
+}
+
+func (s *APIServer) HandleGetAccount(w http.ResponseWriter, r *http.Request) error {
+	account, err := s.store.GetAccounts()
+	if err != nil {
+		return err
+	}
+	return WriteJSON(w, http.StatusOK, account)
 }

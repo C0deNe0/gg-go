@@ -24,6 +24,6 @@ func main() {
 // any = interface{}
 
 //HOW THE DECODER WORKS
-//frst we call the json package 
-//we take the NewDecoder function which takes the current io.Writer we are using 
-//then the Decode function which will decode the parameter we are passing to it
+//frst we call the json package
+//we take the NewDecoder function which takes the current io.Writer we are using
+//then the Decode function which will decode the parameter we are passing to

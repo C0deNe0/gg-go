@@ -129,3 +129,5 @@ func (s *APIServer) HandleGetAccount(w http.ResponseWriter, r *http.Request) err
 	}
 	return WriteJSON(w, http.StatusOK, account)
 }
+
+

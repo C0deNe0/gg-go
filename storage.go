@@ -7,6 +7,16 @@ import (
 	_ "github.com/lib/pq"
 )
 
+//This is called REPOSITORY LAYER INTERFACE
+//interface of the storage -- Defining a contract for any datbase
+//This is an interface that defines the required methods for any kind of storage backend to work with Account.
+
+//-----------WHY USE THIS? --------------------
+/*Abstraction: Your business logic doesn’t care if you're using PostgreSQL, MongoDB, or even an in-memory store.
+
+Decoupling: Keeps your core logic independent of infrastructure details.
+*/
+
 type Storage interface {
 	CreateAccount(*Account) error
 	DeleteAccount(int) error
@@ -15,10 +25,13 @@ type Storage interface {
 	GetAccountByID(int) (*Account, error)
 }
 
+// Concrete Storage Implimentation
+// Holds the DB connection Objects
 type PostgresStore struct {
 	db *sql.DB
 }
 
+// Constructor
 // basically again a constructor for the PostgresStore were we are creating the db with sql open and using the postgres as the driver for that.
 // we are opening a query to the database via that and creating a connecting string
 // later we ping the data to check the connection is still alive or not
@@ -40,12 +53,16 @@ func NewPostgresStore() (*PostgresStore, error) {
 	}, nil
 }
 
+// Initalizer
+// An init fucntion to run before anything in the file
+// This Ensures that the tables exist before using the DB.
 func (s *PostgresStore) Init() error {
 	return s.CreateAccountTable()
 
 }
 
 // these are the function of the interface of the structure Postgres and here pass the query to the database
+// create the datbase table schema
 func (s *PostgresStore) CreateAccountTable() error {
 	query := ` create table if not exists account(
 		id serial primary key,
@@ -61,13 +78,15 @@ func (s *PostgresStore) CreateAccountTable() error {
 	return err
 }
 
+// To create a new account
+// Insert opearation
 func (s *PostgresStore) CreateAccount(acc *Account) error {
 	query := `insert into account
-		(first_name,last_name,number,balnace,createdAt)
+		(first_name,last_name,number,balance,created_at)
 	    values ($1,$2,$3,$4,$5)
 	`
 
-	resp, err := s.db.Query(query, acc.FirstName, acc.LastName, acc.Number, acc.Balance, acc.CreatedAt)
+	resp, err := s.db.Exec(query, acc.FirstName, acc.LastName, acc.Number, acc.Balance, acc.CreatedAt)
 	if err != nil {
 		return err
 	}
@@ -96,9 +115,7 @@ func (s *PostgresStore) GetAccounts() ([]*Account, error) {
 	accounts := []*Account{}
 
 	for rows.Next() {
-		account := new(Account)
-
-		err := rows.Scan(&account.FirstName, &account.LastName, &account.Number, &account.Balance, &account.CreatedAt)
+		account, err := scanIntoAccount(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -107,4 +124,18 @@ func (s *PostgresStore) GetAccounts() ([]*Account, error) {
 
 	return accounts, nil
 
+}
+
+func scanIntoAccount(rows *sql.Rows) (*Account, error) {
+	account := new(Account)
+
+	err := rows.Scan(
+		&account.ID,
+		&account.FirstName,
+		&account.LastName,
+		&account.Number,
+		&account.Balance,
+		&account.CreatedAt)
+
+	return account, err
 }

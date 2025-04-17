@@ -1,7 +1,7 @@
 build:
 	@go build -o bin/gg-go
 
-go: build
+run: build
 	@./bin/gg-go
 
 test:

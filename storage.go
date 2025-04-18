@@ -1,5 +1,7 @@
 package main
 
+// This file is the Busness logic
+//in here we connect to DB and handle the query and return back the response to the handler to the user
 import (
 	"database/sql"
 	"fmt"
@@ -74,6 +76,9 @@ func (s *PostgresStore) CreateAccountTable() error {
 	
 	)`
 
+	//db.Exec() runs the a query which doesn't return any rows
+	//use this to CREATE TABLE, INSERT, UPDATE, DELETE
+	//Returns a sql.Result object (you can get RowsAffected() or LastInsertId() from it)
 	_, err := s.db.Exec(query)
 	return err
 }
@@ -102,11 +107,22 @@ func (s *PostgresStore) DeleteAccount(int) error {
 	return nil
 }
 
-func (s *PostgresStore) GetAccountByID(int) (*Account, error) {
-	return nil, nil
+func (s *PostgresStore) GetAccountByID(id int) (*Account, error) {
+
+	rows, err := s.db.Query("select * from account where id = $1", id)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		return scanIntoAccount(rows)
+	}
+	return nil, fmt.Errorf("account %d not found", id)
 }
 
 func (s *PostgresStore) GetAccounts() ([]*Account, error) {
+
+	//db.Query is used to get multiple roww.
 	rows, err := s.db.Query(`select * from account`)
 	if err != nil {
 		return nil, err
@@ -114,6 +130,7 @@ func (s *PostgresStore) GetAccounts() ([]*Account, error) {
 
 	accounts := []*Account{}
 
+	//to interate over the multiple rows recieved we are using the .Next() function
 	for rows.Next() {
 		account, err := scanIntoAccount(rows)
 		if err != nil {
@@ -126,9 +143,13 @@ func (s *PostgresStore) GetAccounts() ([]*Account, error) {
 
 }
 
+// Reads fields from the current row and maps them into a new Account object.
+// This helps reuse the code instead of duplicating Scan logic.
 func scanIntoAccount(rows *sql.Rows) (*Account, error) {
 	account := new(Account)
 
+	//  Maps each column from the current row into Go variables.
+	//MUST match the order of columns in the query.
 	err := rows.Scan(
 		&account.ID,
 		&account.FirstName,

@@ -170,6 +170,19 @@ func getID(r *http.Request) (int, error) {
 	return id, nil
 }
 
+// this function is to validate the jwt token recived by the user in the header request
+func validateJWT(tokenString string) (*jwt.Token, error) {
+	secret := os.Getenv("JWT_SECRET")
+
+	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(secret), nil
+	})
+
+}
+
 // this function is used to
 func withJWTAuth(handleFunc http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -185,15 +198,14 @@ func withJWTAuth(handleFunc http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// this function is to validate the jwt token recived by the user in the header request
-func validateJWT(tokenString string) (*jwt.Token, error) {
+func createJWT(account *Account) (string, error) {
+	claims := jwt.MapClaims{
+		"expiresAt":     150000,
+		"accountNumber": account.Number,
+	}
+
 	secret := os.Getenv("JWT_SECRET")
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(secret), nil
-	})
-
+	return token.SignedString([]byte(secret))
 }

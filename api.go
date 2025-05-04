@@ -49,7 +49,7 @@ func (s *APIServer) Run() {
 
 	//and we wrapped th s.HandleAccount up because it is returning error and we want to return http.HandleFunc()
 	router.HandleFunc("/account", MakeHTTPHandlerFunc(s.HandleAccount))
-	router.HandleFunc("/account/{id}", MakeHTTPHandlerFunc(s.HandleGetAccountByID))
+	router.HandleFunc("/account/{id}", withJWTAuth(MakeHTTPHandlerFunc(s.HandleGetAccountByID)))
 	router.HandleFunc("/transfer", MakeHTTPHandlerFunc(s.HandleTransfer))
 
 	log.Println("JSON Api running on port: ", s.ListenAddr)
@@ -85,6 +85,13 @@ func (s *APIServer) HandleCreateAccount(w http.ResponseWriter, r *http.Request) 
 		return err
 	}
 
+	//creating a token
+	tokenString, err := createJWT(account)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("token :", tokenString)
 	return WriteJSON(w, http.StatusOK, account)
 
 }
@@ -174,10 +181,17 @@ func getID(r *http.Request) (int, error) {
 func validateJWT(tokenString string) (*jwt.Token, error) {
 	secret := os.Getenv("JWT_SECRET")
 
+	//parse takes the token string and a function for looking up the key.
+	// The latter is USEFUL if we se multiple keys for our application.
+	//The standard is to use 'kid' in the head of the token to indentify which key to use, but the parsed token(head and claims) is provided to the callback, providing flexibilty.
 	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		//
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			//to validate the alg in what we expect
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
+
+		//hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
 		return []byte(secret), nil
 	})
 
@@ -199,13 +213,17 @@ func withJWTAuth(handleFunc http.HandlerFunc) http.HandlerFunc {
 }
 
 func createJWT(account *Account) (string, error) {
+
+	//to create Jwt token we need to create the claims which we can then map to the real expiry date and other members.
 	claims := jwt.MapClaims{
 		"expiresAt":     150000,
 		"accountNumber": account.Number,
 	}
-
+	// to generate the SECRET and TOKEN
 	secret := os.Getenv("JWT_SECRET")
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
+	//now return the whole thing
+	//we need to convert the secret to bytes which is string by default
 	return token.SignedString([]byte(secret))
 }

@@ -216,7 +216,7 @@ func createJWT(account *Account) (string, error) {
 
 	//to create Jwt token we need to create the claims which we can then map to the real expiry date and other members.
 	claims := jwt.MapClaims{
-		"expiresAt":     150000,
+		"expiresAt":     150000,  //expriry 
 		"accountNumber": account.Number,
 	}
 	// to generate the SECRET and TOKEN

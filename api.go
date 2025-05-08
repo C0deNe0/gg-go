@@ -219,7 +219,7 @@ func createJWT(account *Account) (string, error) {
 		"expiresAt":     150000,  //expriry 
 		"accountNumber": account.Number,
 	}
-	// to generate the SECRET and TOKEN
+	// to generate the SECRET and TOKEN.
 	secret := os.Getenv("JWT_SECRET")
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
